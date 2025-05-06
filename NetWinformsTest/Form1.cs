@@ -11,28 +11,31 @@ namespace NetWinformsTest
         public Form1()
         {
             InitializeComponent();
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             var builder = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
                 .AddJsonFile("AppSettings.json")
                 .AddUserSecrets("myclientid")
-                .AddEnvironmentVariables();
+                .AddEnvironmentVariables("ZRS__");
             
             
              
             
             _config = builder.Build();
-            var os = _config["POSH_THEMES_PATH"];
+            var os = _config["rootvalue:value1"];
             
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
 
+
+
             var builder = new ZRSConfigurationBuilder()
                 .SetBasePath (AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("AppSettings.json")
+                .AddJsonFile("AppSettings.json",true)
                 .AddUserSecrets("myclientid")
-                .AddEnvironmentVariables()
+                .AddEnvironmentVariables("ZRS__")
                 .Build();
 
 
