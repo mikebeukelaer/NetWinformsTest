@@ -11,17 +11,18 @@ namespace NetWinformsTest
         public Form1()
         {
             InitializeComponent();
+#if !debug
+            GetSecrets("product");
+#endif
             var builder = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
                 .AddJsonFile("AppSettings.json")
-                .AddUserSecrets("myclientid")
-                .AddEnvironmentVariables();
-            
-            
-             
+                .AddJsonFile($"AppSettings.{Environment.GetEnvironmentVariable("env")}.json",true)
+                .AddUserSecrets("myclient")
+                .AddEnvironmentVariables("ZRS__");
             
             _config = builder.Build();
-            var os = _config["POSH_THEMES_PATH"];
+           
             
         }
 
@@ -32,7 +33,7 @@ namespace NetWinformsTest
                 .SetBasePath (AppDomain.CurrentDomain.BaseDirectory)
                 .AddJsonFile("AppSettings.json")
                 .AddUserSecrets("myclientid")
-                .AddEnvironmentVariables()
+                .AddEnvironmentVariables("ZRS__")
                 .Build();
 
 
