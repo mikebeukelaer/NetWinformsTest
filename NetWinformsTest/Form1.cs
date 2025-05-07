@@ -11,15 +11,15 @@ namespace NetWinformsTest
         public Form1()
         {
             InitializeComponent();
-#if !debug
-            GetSecrets("product");
-#endif
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
             var builder = new ConfigurationBuilder()
                 .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
                 .AddJsonFile("AppSettings.json")
-                .AddJsonFile($"AppSettings.{Environment.GetEnvironmentVariable("env")}.json",true)
-                .AddUserSecrets("myclient")
+                .AddUserSecrets("myclientid")
                 .AddEnvironmentVariables("ZRS__");
+            
+            
+             
             
             _config = builder.Build();
            
@@ -29,9 +29,11 @@ namespace NetWinformsTest
         private void button1_Click(object sender, EventArgs e)
         {
 
+
+
             var builder = new ZRSConfigurationBuilder()
                 .SetBasePath (AppDomain.CurrentDomain.BaseDirectory)
-                .AddJsonFile("AppSettings.json")
+                .AddJsonFile("AppSettings.json",true)
                 .AddUserSecrets("myclientid")
                 .AddEnvironmentVariables("ZRS__")
                 .Build();
