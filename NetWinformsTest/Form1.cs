@@ -19,14 +19,11 @@ namespace NetWinformsTest
                 .AddEnvironmentVariables("ZRS__");
             
             
+             
+            
             _config = builder.Build();
-            var test = _config["afsd"];
-        
-
-
-
-
-
+           
+            
         }
 
         private void button1_Click(object sender, EventArgs e)
