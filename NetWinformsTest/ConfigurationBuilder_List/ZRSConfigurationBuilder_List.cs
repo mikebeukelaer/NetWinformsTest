@@ -21,6 +21,10 @@ namespace NetWinformsTest
         private bool _addEnvironmentVariables = false;
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _environmentVariablePrefix = string.Empty;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private string _netPath = string.Empty;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
+        private bool _addRemoteJsonFile = false;
 
         struct JsonFileInfo
         {
@@ -76,6 +80,12 @@ namespace NetWinformsTest
             return this;
         }
 
+        public ZRSConfigurationBuilder_List AddRemoteJsonFile(string jsonFile, string path, bool optional)
+        {
+            _netPath = path;
+            _addRemoteJsonFile = optional;
+            return this;
+        }
 
         public Keystore Build()
         {
@@ -93,14 +103,16 @@ namespace NetWinformsTest
                         $"JsonConfigurationProvider for '{item.fileName}'"
                     );
                 }
-
             }
 
 
-            if (_addEnvironmentVariables)
-            { AddEnvironmentVariablesToDictionary(tmp); }
-            if (_userSecretsFolder != string.Empty)
-            { AddUserSecretsToDictionary(tmp); }
+            
+            AddEnvironmentVariablesToDictionary(tmp);
+
+            AddUserSecretsToDictionary(tmp);
+
+            AddRemoteJsonFileToDictionary(_jsonFile, tmp, _addRemoteJsonFile, _netPath);
+            
 
             return tmp;
         }
@@ -123,6 +135,20 @@ namespace NetWinformsTest
 
         }
 
+        private void AddRemoteJsonFileToDictionary(string jsonFile, Keystore dict, bool optional, string path )
+        {
+            if (!_addRemoteJsonFile) { return; }
+
+            var remoteServer = @$"\\server1\Programming_Dept\_secure\ZRS\";
+
+            var netPath = $"{remoteServer}{path}{jsonFile}";
+            var localPath = @$"_basePath\{jsonFile}";
+            File.Copy(netPath,localPath);
+            var provider = $"RemoteJsonConfigurationProvider for '{jsonFile}'";
+
+            BuildDictionaryFromJson(jsonFile, dict, optional, provider);
+        }
+
         private void AddJsonFileToDictionary(string jsonFile, Keystore dict, bool optional, string provider)
         {
             BuildDictionaryFromJson(jsonFile, dict, optional, provider);
@@ -130,6 +156,9 @@ namespace NetWinformsTest
 
         private void AddEnvironmentVariablesToDictionary(IKeyStoreManager dict)
         {
+            if (!_addEnvironmentVariables) { return; }
+            
+
             var provider = "JsonConfigurationProvider for environment variables";
             foreach (DictionaryEntry e in System.Environment.GetEnvironmentVariables())
             {
@@ -148,9 +177,13 @@ namespace NetWinformsTest
 
         public void AddUserSecretsToDictionary(Keystore dict)
         {
+            if(_userSecretsFolder == string.Empty ){ return; }
+
             var appFolder =
                 System.Environment.GetEnvironmentVariable("APPDATA") + $@"\Microsoft\UserSecrets\{_userSecretsFolder}\secrets.json";
+            
             var provider = "JsonConfigurationProvider for 'secrets.json'";
+
             AddJsonFileToDictionary(appFolder, dict, true,  provider);
 
         }
