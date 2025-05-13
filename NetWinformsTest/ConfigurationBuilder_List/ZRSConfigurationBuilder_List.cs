@@ -1,24 +1,25 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Permissions;
-using System.Text;
-using System.Threading.Tasks;
-using System.Text.Json;
 using System.Collections;
-using static System.Windows.Forms.Design.AxImporter;
-using System.Security.Policy;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace NetWinformsTest
 {
-    public class ZRSConfigurationBuilder
+    public class ZRSConfigurationBuilder_List
     {
-
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _basePath = string.Empty;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _jsonFile = string.Empty;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _userSecretsFolder = string.Empty;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private bool _addEnvironmentVariables = false;
+        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private string _environmentVariablePrefix = string.Empty;
 
         struct JsonFileInfo
@@ -29,12 +30,12 @@ namespace NetWinformsTest
         [DebuggerBrowsable(DebuggerBrowsableState.Never)]
         private List<JsonFileInfo> _jsonFiles = new List<JsonFileInfo>();
 
-        public ZRSConfigurationBuilder SetBasePath(string basePath)
+        public ZRSConfigurationBuilder_List SetBasePath(string basePath)
         {
             _basePath = basePath;
             return this;
         }
-        public ZRSConfigurationBuilder AddJsonFile(string jsonFile)
+        public ZRSConfigurationBuilder_List AddJsonFile(string jsonFile)
         {
             var jsonFileInfo = new JsonFileInfo()
             {
@@ -45,7 +46,7 @@ namespace NetWinformsTest
             _jsonFiles.Add(jsonFileInfo);
             return this;
         }
-        public ZRSConfigurationBuilder AddJsonFile(string jsonFile, bool optional)
+        public ZRSConfigurationBuilder_List AddJsonFile(string jsonFile, bool optional)
         {
             var jsonFileInfo = new JsonFileInfo()
             {
@@ -57,28 +58,28 @@ namespace NetWinformsTest
 
             return this;
         }
-        public ZRSConfigurationBuilder AddUserSecrets(string userSecretsFolder) 
+        public ZRSConfigurationBuilder_List AddUserSecrets(string userSecretsFolder)
         {
             _userSecretsFolder = userSecretsFolder;
             return this;
         }
 
-        public ZRSConfigurationBuilder AddEnvironmentVariables()
+        public ZRSConfigurationBuilder_List AddEnvironmentVariables()
         {
             _addEnvironmentVariables = true;
             return this;
         }
-        public ZRSConfigurationBuilder AddEnvironmentVariables(string prefix)
+        public ZRSConfigurationBuilder_List AddEnvironmentVariables(string prefix)
         {
             _environmentVariablePrefix = prefix;
             _addEnvironmentVariables = true;
             return this;
         }
 
-        
-        public ConfigurationRoot<string,string> Build()
+
+        public Keystore Build()
         {
-            ConfigurationRoot<string, string> tmp = new ConfigurationRoot<string, string>();
+            var tmp = new Keystore();
 
             foreach (var item in _jsonFiles)
             {
@@ -86,67 +87,76 @@ namespace NetWinformsTest
                 {
                     AddJsonFileToDictionary
                     (
-                        _basePath + item.fileName, 
+                        _basePath + item.fileName,
                         tmp,
-                        item.optional
+                        item.optional,
+                        $"JsonConfigurationProvider for '{item.fileName}'"
                     );
                 }
 
             }
-            
 
-            if(_addEnvironmentVariables) {AddEnvironmentVariablesToDictionary(tmp); }
-            if(_userSecretsFolder != string.Empty) {AddUserSecretsToDictionary(tmp); }
+
+            if (_addEnvironmentVariables)
+            { AddEnvironmentVariablesToDictionary(tmp); }
+            if (_userSecretsFolder != string.Empty)
+            { AddUserSecretsToDictionary(tmp); }
 
             return tmp;
         }
 
-        public void BuildDictionaryFromJson(string jsonFile, ConfigurationRoot<string, string> dict, bool optional)
+        public void BuildDictionaryFromJson(string jsonFile, Keystore dict, bool optional, string provider)
         {
-            if (optional && !File.Exists(jsonFile)) return;
+            if (optional && !File.Exists(jsonFile))
+                return;
 
             var jsonString = File.ReadAllText(jsonFile);
-         
+
             using (JsonDocument document = JsonDocument.Parse(jsonString))
             {
                 List<string> prefix = new List<string>();
                 JsonElement root = document.RootElement;
-               
-                FlattenJsonToDictionary(root, prefix, dict , 0);
+
+                FlattenJsonToDictionary(root, prefix, dict, 0, provider);
 
             };
 
         }
-        public void AddJsonFileToDictionary(string jsonFile, ConfigurationRoot<string, string> dict,bool optional)
+
+        private void AddJsonFileToDictionary(string jsonFile, Keystore dict, bool optional, string provider)
         {
-            BuildDictionaryFromJson(jsonFile, dict,optional);
+            BuildDictionaryFromJson(jsonFile, dict, optional, provider);
         }
 
-        public void AddEnvironmentVariablesToDictionary(ConfigurationRoot<string, string> dict)
+        private void AddEnvironmentVariablesToDictionary(IKeyStoreManager dict)
         {
-
+            var provider = "JsonConfigurationProvider for environment variables";
             foreach (DictionaryEntry e in System.Environment.GetEnvironmentVariables())
             {
                 Console.WriteLine(e.Key + ":" + e.Value);
                 if (e.Key.ToString().ToLower().StartsWith(_environmentVariablePrefix.ToLower()))
                 {
-                    dict[(string)e.Key] = e.Value as string;
+                  //  dict[(string)e.Key] = e.Value as string;
+                    dict.Add
+                    (
+                        new ConfigurationItem { Key = e.Key as string,  Value = e.Value as string, Provider = provider}
+                    );
                 }
             }
         }
 
 
-        public void AddUserSecretsToDictionary(ConfigurationRoot<string, string> dict)
+        public void AddUserSecretsToDictionary(Keystore dict)
         {
-            var appFolder = 
+            var appFolder =
                 System.Environment.GetEnvironmentVariable("APPDATA") + $@"\Microsoft\UserSecrets\{_userSecretsFolder}\secrets.json";
-                
-            AddJsonFileToDictionary(appFolder,dict,true);
+            var provider = "JsonConfigurationProvider for 'secrets.json'";
+            AddJsonFileToDictionary(appFolder, dict, true,  provider);
 
         }
 
 
-        private void FlattenJsonToDictionary(JsonElement element, List<string> key, Dictionary<string, string> keyValuePairs, int arrIndex)
+        private void FlattenJsonToDictionary(JsonElement element, List<string> key, IKeyStoreManager keyValuePairs, int arrIndex, string provider)
         {
             var localkey = string.Empty;
             switch (element.ValueKind)
@@ -156,7 +166,7 @@ namespace NetWinformsTest
                     {
                         key.Add(property.Name);
 
-                        FlattenJsonToDictionary(property.Value, key, keyValuePairs, arrIndex);
+                        FlattenJsonToDictionary(property.Value, key, keyValuePairs, arrIndex,provider);
 
                         key.RemoveAt(key.Count - 1);
 
@@ -169,29 +179,38 @@ namespace NetWinformsTest
                     {
                         key.Add(arrIndex.ToString());
                         arrIndex++;
-                        FlattenJsonToDictionary(item, key, keyValuePairs, arrIndex);
+                        FlattenJsonToDictionary(item, key, keyValuePairs, arrIndex,provider);
                         key.RemoveAt(key.Count - 1);
                     }
                     break;
 
                 case JsonValueKind.String:
                     localkey = String.Join(":", key);
-                    keyValuePairs[localkey] = element.GetString();
+                    keyValuePairs.Add
+                    (
+                        new ConfigurationItem { Key = localkey, Value = element.GetString(), Provider = provider }
+                    );
 
                     break;
 
                 case JsonValueKind.Number:
 
                     localkey = String.Join(":", key);
-                    keyValuePairs[localkey] = element.GetInt32().ToString();
-
+                   // keyValuePairs[localkey] = element.GetInt32().ToString();
+                    keyValuePairs.Add
+                  (
+                      new ConfigurationItem { Key = localkey, Value = element.GetInt32().ToString(), Provider = provider }
+                  );
                     break;
 
                 case JsonValueKind.True:
                 case JsonValueKind.False:
                     localkey = String.Join(":", key);
-                    keyValuePairs[localkey] = element.GetBoolean().ToString();
-
+                    //keyValuePairs[localkey] = element.GetBoolean().ToString();
+                    keyValuePairs.Add
+                  (
+                      new ConfigurationItem { Key = localkey, Value = element.GetBoolean().ToString(), Provider = provider }
+                  );
                     break;
 
                 case JsonValueKind.Null:
@@ -199,7 +218,7 @@ namespace NetWinformsTest
                     break;
 
                 default:
-                  //  log("Unknown type");
+                    //  log("Unknown type");
                     break;
             }
 

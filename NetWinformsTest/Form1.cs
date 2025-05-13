@@ -19,17 +19,28 @@ namespace NetWinformsTest
                 .AddEnvironmentVariables("ZRS__");
             
             
-             
-            
             _config = builder.Build();
-            var os = _config["rootvalue:value1"];
-            
+            var test = _config["afsd"];
+        
+
+
+
+
+
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
 
+            var tmp =  new ZRSConfigurationBuilder_List()
+                  .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+                .AddJsonFile("AppSettings.json", true)
+                .AddUserSecrets("myclientid")
+                .AddEnvironmentVariables("ZRS__")
+                .Build();
 
+
+            var test = tmp["Movies:ServiceApiKfey"];
 
             var builder = new ZRSConfigurationBuilder()
                 .SetBasePath (AppDomain.CurrentDomain.BaseDirectory)
